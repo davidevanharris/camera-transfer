@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Camera Transfer connects to your camera over its Wi-Fi network to copy photos, and runs a small FTP server so your Sony camera can send photos to this iPhone.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>Camera Transfer uses Bluetooth only to switch on your Ricoh GR IV's Wi-Fi and to notice when the camera is turned on.</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>bluetooth-central</string>
+	</array>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Camera Transfer can add transferred photos and videos to your library when you ask it to, or automatically in an auto-transfer mode. It cannot see your existing photos.</string>
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<key>UILaunchScreen</key>
+	<dict/>
+</dict>
+</plist>
