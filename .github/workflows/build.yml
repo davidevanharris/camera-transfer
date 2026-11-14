@@ -30,7 +30,13 @@ jobs:
             -destination "platform=iOS Simulator,id=$UDID" \
             CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" \
             2>&1 | tee test.log | grep -E "error:|Test Case.*(failed)|Executed|TEST (SUCCEEDED|FAILED)" || true
-          grep -q "TEST SUCCEEDED" test.log
+          if ! grep -q "TEST SUCCEEDED" test.log; then
+            echo "---- failure detail ----"
+            grep -nE "error|failed|Failing|XCTAssert|Restarting|crash|timed out" test.log | head -60
+            echo "---- tail ----"
+            tail -40 test.log
+            exit 1
+          fi
       - name: Upload logs
         if: always()
         uses: actions/upload-artifact@v4
