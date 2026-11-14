@@ -80,13 +80,13 @@ final class RicohParserTests: XCTestCase {
 
     func testPhotoListWithStorageMakesDistinctIDs() throws {
         let json = #"{"errCode":200,"dirs":[{"name":"100RICOH","files":["R0000001.JPG"]}]}"#
-        let internal = try RicohParser.parsePhotoList(data(json), storage: "in")
+        let onboard = try RicohParser.parsePhotoList(data(json), storage: "in")
         let card = try RicohParser.parsePhotoList(data(json), storage: "sd1")
-        XCTAssertEqual(internal.first?.id, "in/100RICOH/R0000001.JPG")
+        XCTAssertEqual(onboard.first?.id, "in/100RICOH/R0000001.JPG")
         XCTAssertEqual(card.first?.id, "sd1/100RICOH/R0000001.JPG")
         XCTAssertEqual(card.first?.storage, "sd1")
         XCTAssertEqual(card.first?.folder, "100RICOH")
         XCTAssertEqual(card.first?.cameraPath, "100RICOH/R0000001.JPG")
-        XCTAssertNotEqual(internal.first?.id, card.first?.id)
+        XCTAssertNotEqual(onboard.first?.id, card.first?.id)
     }
 }
