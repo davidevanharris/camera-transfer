@@ -53,10 +53,12 @@ final class FTPSession {
     // MARK: Command handling
 
     func handle(line rawLine: String) -> [FTPAction] {
-        var line = rawLine
-        while line.hasSuffix("\r") || line.hasSuffix("\n") {
-            line.removeLast()
+        // "\r\n" is a single Swift Character, so trim by Unicode scalar rather than hasSuffix.
+        var scalars = Substring(rawLine).unicodeScalars
+        while let last = scalars.last, last == "\r" || last == "\n" {
+            scalars.removeLast()
         }
+        let line = String(scalars)
         let command: String
         let argument: String
         if let space = line.firstIndex(of: " ") {
