@@ -109,7 +109,7 @@ Pick a mode at the top of any camera tab or in Settings:
 
 | Mode | Auto-transfer runs while |
 | --- | --- |
-| Manual | never (auto-transfer off) |
+| Off (the default) | never (auto-transfer off) |
 | Default | phone **and** camera battery are both above 75% |
 | Battery saver | both above 90% |
 | Gonna charge soon | both above 25% |

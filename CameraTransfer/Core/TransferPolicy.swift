@@ -11,7 +11,7 @@ enum AutoTransferMode: String, CaseIterable, Identifiable, Codable, Sendable {
 
     var displayName: String {
         switch self {
-        case .manual: return "Manual (auto off)"
+        case .manual: return "Off"
         case .standard: return "Default"
         case .batterySaver: return "Battery saver"
         case .gonnaChargeSoon: return "Gonna charge soon"
@@ -65,7 +65,7 @@ enum TransferPolicy {
                          camera: CameraBatteryReading,
                          allowWhenCameraBatteryUnknown: Bool) -> TransferDecision {
         guard let threshold = mode.threshold else {
-            return TransferDecision(allowed: false, reason: "Auto-transfer is off (Manual mode).")
+            return TransferDecision(allowed: false, reason: "Auto-transfer is off.")
         }
         let requirement = "\(mode.displayName) mode needs above \(threshold)%"
 

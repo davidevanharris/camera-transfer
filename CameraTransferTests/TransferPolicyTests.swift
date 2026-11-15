@@ -24,7 +24,7 @@ final class TransferPolicyTests: XCTestCase {
     func testManualAlwaysDenies() {
         let decision = decide(.manual, phone: 100, camera: .percent(100))
         XCTAssertFalse(decision.allowed)
-        XCTAssertTrue(decision.reason.contains("Manual"))
+        XCTAssertTrue(decision.reason.contains("off"))
     }
 
     func testDefaultModeBoundaries() {
