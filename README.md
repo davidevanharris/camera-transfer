@@ -60,16 +60,16 @@ On stock firmware the GR IV's Wi-Fi cannot be started from the camera menu. A pa
 
 **One-time pairing**
 1. On the camera: MENU > **Wireless Communication** > **Action Mode** > On, then **Pairing** > **Execute**.
-2. In the app's **GR IV** tab, open *Bluetooth pairing*, tap **Find camera** and pick your GR IV. It is remembered.
+2. In the app, open **Cameras > Ricoh GR IV**, open *Bluetooth pairing*, tap **Find camera** and pick your GR IV. It is remembered.
 3. Tap **Connect**. iOS shows a Bluetooth pairing request with a 6-digit code. Check that it matches the camera, then accept on both. The first connection can take about 15 seconds of retries.
 
 **Every time**
 1. Tap **Connect**. The app wakes the camera's Wi-Fi over Bluetooth and reads its network name and password. Then it joins the network (iOS asks you to confirm) and waits for the camera to answer. Finally it shows the model, firmware, battery and files, from both internal memory and the SD card.
 2. If automatic joining is not possible (no entitlement, or the password came back unreadable/encrypted), the app shows the network name and a **Copy password** button. Join in Settings > Wi-Fi, come back and tap **Continue**.
-3. Filter, select and download as before. Files are saved to `Camera Transfer/Ricoh GR IV/<storage>/<camera folder>/`.
-4. **Disconnect** ends the camera's Wi-Fi session (`/v1/device/wlan/finish`) and asks the camera over Bluetooth to switch Wi-Fi off.
+3. Tap **Import N New** to bring in everything not yet imported, or tap individual photos and then **Import N Selected**. Files are saved to `Camera Transfer/Ricoh GR IV/<storage>/<camera folder>/`.
+4. **Disconnect** (in the ... menu) ends the camera's Wi-Fi session (`/v1/device/wlan/finish`) and asks the camera over Bluetooth to switch Wi-Fi off.
 
-**Connect without Bluetooth** skips the Bluetooth step if the phone is already on the camera's Wi-Fi, and is also how you test against the mock server. The debug log at the bottom of the tab shows every Bluetooth and network step, including any extra Wi-Fi characteristics the camera exposes.
+**Connect without Bluetooth** skips the Bluetooth step if the phone is already on the camera's Wi-Fi, and is also how you test against the mock server. The debug log under **Details** shows every Bluetooth and network step, including any extra Wi-Fi characteristics the camera exposes.
 
 The default camera address is `http://192.168.0.1`. You can change it in Settings.
 
@@ -77,35 +77,39 @@ The default camera address is `http://192.168.0.1`. You can change it in Setting
 
 1. On the camera, start the smartphone Wi-Fi connection (MENU > Setup > Wi-Fi/Bluetooth settings). The camera shows its SSID and password. Choose the private / Wi-Fi option if it asks.
 2. Join that network in **Settings > Wi-Fi** on the iPhone.
-3. Open the app's **OM-3** tab, tap **Connect**, then select and download files as for the Ricoh.
+3. Open **Cameras > OM System OM-3**, tap **Connect**, then import as for the Ricoh.
 4. Files are saved to `Camera Transfer/OM System OM-3/<camera folder>/`.
 
 The default camera address is `http://192.168.0.10`. You can change it in Settings.
 
 ### Sony A7CR (FTP)
 
-The A7CR does not serve files over HTTP. Instead, it *sends* files to an FTP server, and the app is that server.
+The A7CR does not serve files over HTTP. Instead, it *sends* files to an FTP server, and the app is that server. **Cameras > Sony A7CR** walks through the setup with the values to type and a checklist that shows how far the camera has got. The menu names below are from Sony's FTP Help Guide for the ILCE-7CR.
 
-1. Put the iPhone and the camera on the same network. Either:
-   - turn on **Personal Hotspot** on the iPhone and connect the camera to it (camera MENU > Network > Wi-Fi > Access Point Set.), or
-   - connect both to the same Wi-Fi router.
-2. In the app's **A7CR** tab, turn the **FTP server** on. The tab shows the IP address(es), port (default **2121**), user name and password. A random password is created on first launch; you can change it in Settings.
-3. On the camera, go to MENU > Network > Transfer/Remote > **FTP Transfer Func.** > **Server Setting** and pick a server slot. Enter:
-   - **Host name**: the address the app shows. On Personal Hotspot it is usually `172.20.10.1`.
-   - **Port**: 2121 (or whatever the app shows)
-   - **User / Password**: as shown in the app
+1. **Put the camera and iPhone on one network.** Either:
+   - **Personal Hotspot:** on the iPhone open Settings > Personal Hotspot, switch on *Allow Others to Join* and stay on that screen until the camera has joined. On the camera: MENU > Network > Wi-Fi > Access Point Set., choose the iPhone and enter the hotspot password. Or
+   - **Same Wi-Fi:** join both to the same router. Guest and public networks often block devices from talking to each other.
+2. **Tell the camera where to send.** On the camera: MENU > Network > FTP Transfer > FTP Transfer Func. > Server Setting > Server 1:
+   - Destination Settings > **Host Name**: the address the app shows. On Personal Hotspot it is usually `172.20.10.1`.
+   - Destination Settings > **Secure Protocol**: Off
+   - Destination Settings > **Port**: 2121 (or whatever the app shows)
+   - User Info Settings > **User** / **Password**: as shown in the app (a random password is created on first launch)
    - **Passive Mode**: On
-   - **Secure Protocol**: Off
-   - Directory: leave empty
-4. Turn on FTP Function, select that server slot, then use **FTP Transfer** to send images (choose JPEG, RAW or both). **Auto FTP Transfer** can send each shot as you take it.
-5. **Keep the app open in the foreground** while files transfer. iOS suspends background apps, and that stops the server. The screen does not auto-lock while the server runs.
-6. Received files appear in the activity log and in `Camera Transfer/Sony A7CR/`.
+   - Directory Settings > Specify Directory: leave empty
+3. **Switch on FTP.** In the app tap **Start receiving**. On the camera: FTP Transfer Func. > **FTP Function** > On. An FTP icon appears on the camera when it has connected.
+4. **Send photos.** On the camera: FTP Transfer Func. > **FTP Transfer**. Choose a Target Group (This Date, This Media ...) and Transfer Status *Only Non-transfer*, then OK. **Auto FTP Transfer** sends each shot as you take it.
+5. **Keep the app open in the foreground** while files transfer. iOS suspends background apps, and that stops the server. The screen does not auto-lock while receiving is on.
+6. Received files appear in the Library tab and in `Camera Transfer/Sony A7CR/`.
 
-Sony's menu names differ slightly between firmware versions. Look for "FTP Transfer" under the Network menu.
+**If it does not work:** the app's checklist ("How far it has got") shows the first step that failed, and *It is not working* has a self-test and the usual causes. On the camera, FTP Transfer Func. > **Display FTP Error Info.** shows the camera's own error.
+
+### Live view and remote shutter (OM-3, experimental)
+
+**Cameras > OM System OM-3 > Live view and remote shutter** asks the camera for its live picture and shows a shutter button. It uses the commands documented by the community for older Olympus bodies (`switch_cammode`, `exec_takemisc startliveview`, `exec_takemotion`) and has not been confirmed on the OM-3. The Sony A7CR and Ricoh GR IV have no remote control in this app: Sony's remote protocol is licensed to companies only, and Ricoh's own app offers only a Bluetooth shutter release.
 
 ### Auto-transfer modes
 
-Pick a mode at the top of any camera tab or in Settings:
+Pick a mode in Settings, or under **Details** on a camera's screen:
 
 | Mode | Auto-transfer runs while |
 | --- | --- |
@@ -126,13 +130,15 @@ Thresholds are strictly "above": at exactly 75% Default pauses. A phone that is 
 
 ### Library tab
 
-- Browse saved files for each camera. Thumbnails come from ImageIO, which uses the JPEG previews embedded in DNG, ARW and ORF files.
-- Tap a file for a QuickLook preview. Long-press for **Share**, **Save to Photos (add-only)** and **Delete**.
-- Tap **Select** to share, save or delete several files at once. If you save a JPEG and a RAW with the same name together, Photos stores them as a single RAW+JPEG item.
+- One grid of everything imported from all three cameras, newest first and grouped by the day it was imported. The filter button (top left) narrows it to one camera or one kind of file.
+- Thumbnails come from ImageIO, which uses the JPEG previews embedded in DNG, ARW and ORF files.
+- Tap a photo to view it full screen and swipe between photos. Long-press for **Share**, **Add to Photos** and **Delete**.
+- Tap **Select** to share, add to Photos or delete several at once. If you add a JPEG and a RAW with the same name together, Photos stores them as a single RAW+JPEG item.
 
 ### Settings
 
-- Camera addresses, FTP port, user name and password.
+- The main screen has the auto-transfer mode and the *Also add imports to Photos* switch.
+- **Advanced** has camera addresses, FTP port, user name and password.
 - "After download, also add to Photos (add-only)".
 - Auto-transfer mode, "Allow when camera battery is unknown" and "Keep a copy in the app folder".
 - "Forget download history", so that every file shows as *new* again.
