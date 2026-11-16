@@ -1,12 +1,100 @@
 import SwiftUI
 
+/// The short settings screen. Everything technical lives under Advanced.
 struct SettingsView: View {
+    @AppStorage(SettingsKey.exportAfterDownload) private var exportAfterDownload = false
+    let ftpController: FTPServerController
+
+    var body: some View {
+        Form {
+            Section {
+                AutoTransferModePicker(cameraBattery: .unknown, showsDecision: false)
+            } header: {
+                Text("Auto-transfer")
+            } footer: {
+                Text("Off: nothing is sent until you tap Import. The other modes send each new JPEG to Photos by themselves while the app is open and the batteries are above the level shown.")
+            }
+
+            Section {
+                Toggle("Also add imports to Photos", isOn: $exportAfterDownload)
+            } header: {
+                Text("Photos")
+            } footer: {
+                Text("Uses \"Add Photos Only\" permission. The app can never see your existing photos. Imports are always kept in the Library tab and the Files app.")
+            }
+
+            Section {
+                NavigationLink("Advanced") {
+                    AdvancedSettingsView(ftpController: ftpController)
+                }
+                NavigationLink("Privacy") {
+                    PrivacyView()
+                }
+            } footer: {
+                Text("Advanced has camera addresses, the Sony server's port and password, and download history.")
+            }
+
+            Section {
+                LabeledContent("Version", value: appVersion)
+            } header: {
+                Text("About")
+            }
+        }
+        .navigationTitle("Settings")
+    }
+
+    private var appVersion: String {
+        let short = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
+        return "\(short) (\(build))"
+    }
+}
+
+struct PrivacyView: View {
+    var body: some View {
+        Form {
+            Section {
+                privacyRow("photo.on.rectangle", "Your photo library",
+                           "Never read. The app does not ask for Photos read access. Saving to Photos (optional, and used by auto-transfer) uses add-only access, so the app can add new items but cannot see, list or change anything already there.")
+                privacyRow("folder", "Files",
+                           "Transferred files are stored only in this app's own folder (Files > On My iPhone > Camera Transfer). Deleting the app deletes them.")
+                privacyRow("wifi", "Network",
+                           "The app only talks to your camera on the local network (plain HTTP to the camera, or the camera connecting to this phone's FTP server). No internet requests, no analytics, no accounts, no tracking.")
+                privacyRow("dot.radiowaves.left.and.right", "Bluetooth",
+                           "Used only to wake the Ricoh GR IV's Wi-Fi and to notice when it is switched on. Nothing else is scanned for or stored, apart from the identifier of the camera you pick.")
+                privacyRow("wifi.router", "Joining camera Wi-Fi",
+                           "The app can ask iOS to join the Ricoh's Wi-Fi for you (you confirm each time); the network is forgotten when the app leaves the foreground.")
+                privacyRow("location.slash", "Location",
+                           "Not used.")
+            } header: {
+                Text("Privacy")
+            }
+        }
+        .navigationTitle("Privacy")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func privacyRow(_ icon: String, _ title: String, _ detail: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: icon)
+                .frame(width: 24)
+                .foregroundStyle(Color.accentColor)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.subheadline.bold())
+                Text(detail).font(.footnote).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(.vertical, 2)
+    }
+}
+
+struct AdvancedSettingsView: View {
     @AppStorage(SettingsKey.ricohBaseURL) private var ricohBaseURL = AppDefaults.ricohBaseURL
     @AppStorage(SettingsKey.olympusBaseURL) private var olympusBaseURL = AppDefaults.olympusBaseURL
     @AppStorage(SettingsKey.ftpPort) private var ftpPort = AppDefaults.ftpPort
     @AppStorage(SettingsKey.ftpUsername) private var ftpUsername = AppDefaults.ftpUsername
     @AppStorage(SettingsKey.ftpPassword) private var ftpPassword = ""
-    @AppStorage(SettingsKey.exportAfterDownload) private var exportAfterDownload = false
     @AppStorage(AutoTransferSettings.allowUnknownCameraBatteryKey) private var allowUnknownCameraBattery = true
     @AppStorage(AutoTransferSettings.keepCopyKey) private var keepCopy = false
 
@@ -29,7 +117,6 @@ struct SettingsView: View {
     var body: some View {
         Form {
             Section {
-                AutoTransferModePicker(cameraBattery: .unknown, showsDecision: false)
                 Toggle("Allow when camera battery is unknown", isOn: $allowUnknownCameraBattery)
                 Toggle("Keep a copy in the app folder", isOn: $keepCopy)
             } header: {
@@ -100,14 +187,6 @@ struct SettingsView: View {
             }
 
             Section {
-                Toggle("After download, also add to Photos (add-only)", isOn: $exportAfterDownload)
-            } header: {
-                Text("Photos")
-            } footer: {
-                Text("Uses \"Add Photos Only\" permission. The app can never see your existing photos.")
-            }
-
-            Section {
                 ForEach([CameraModel.ricoh, CameraModel.olympus]) { camera in
                     Button("Forget download history for \(camera.displayName)") {
                         LibraryStore.shared.resetIndex(for: camera)
@@ -121,30 +200,9 @@ struct SettingsView: View {
                 Text("Download history")
             }
 
-            Section {
-                privacyRow("photo.on.rectangle", "Your photo library",
-                           "Never read. The app does not ask for Photos read access. Saving to Photos (optional, and used by auto-transfer) uses add-only access, so the app can add new items but cannot see, list or change anything already there.")
-                privacyRow("folder", "Files",
-                           "Transferred files are stored only in this app's own folder (Files > On My iPhone > Camera Transfer). Deleting the app deletes them.")
-                privacyRow("wifi", "Network",
-                           "The app only talks to your camera on the local network (plain HTTP to the camera, or the camera connecting to this phone's FTP server). No internet requests, no analytics, no accounts, no tracking.")
-                privacyRow("dot.radiowaves.left.and.right", "Bluetooth",
-                           "Used only to wake the Ricoh GR IV's Wi-Fi and to notice when it is switched on. Nothing else is scanned for or stored, apart from the identifier of the camera you pick.")
-                privacyRow("wifi.router", "Joining camera Wi-Fi",
-                           "The app can ask iOS to join the Ricoh's Wi-Fi for you (you confirm each time); the network is forgotten when the app leaves the foreground.")
-                privacyRow("location.slash", "Location",
-                           "Not used.")
-            } header: {
-                Text("Privacy")
-            }
-
-            Section {
-                LabeledContent("Version", value: appVersion)
-            } header: {
-                Text("About")
-            }
         }
-        .navigationTitle("Settings")
+        .navigationTitle("Advanced")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     private var appVersion: String {
@@ -168,19 +226,5 @@ struct SettingsView: View {
                 .font(.footnote)
                 .foregroundStyle(.red)
         }
-    }
-
-    private func privacyRow(_ icon: String, _ title: String, _ detail: String) -> some View {
-        HStack(alignment: .top, spacing: 12) {
-            Image(systemName: icon)
-                .frame(width: 24)
-                .foregroundStyle(Color.accentColor)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.subheadline.bold())
-                Text(detail).font(.footnote).foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .padding(.vertical, 2)
     }
 }

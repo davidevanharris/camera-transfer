@@ -247,6 +247,8 @@ final class FTPControlConnection: @unchecked Sendable {
         let actions = session.handle(line: trimmed)
         if !wasLoggedIn && session.isLoggedIn {
             server?.emit(.loggedIn(remoteName))
+        } else if upper.hasPrefix("PASS ") && !session.isLoggedIn {
+            server?.emit(.log("\(remoteName): login rejected"))
         }
         for action in actions {
             perform(action)

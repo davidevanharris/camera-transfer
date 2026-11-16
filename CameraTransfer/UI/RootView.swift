@@ -1,5 +1,11 @@
 import SwiftUI
 
+enum AppTab: Hashable {
+    case library
+    case cameras
+    case settings
+}
+
 @MainActor
 struct RootView: View {
     @State private var ricohModel = CameraBrowserViewModel(camera: .ricoh)
@@ -8,33 +14,34 @@ struct RootView: View {
     @State private var libraryModel = LibraryViewModel()
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage(AutoTransferSettings.modeKey) private var autoMode: AutoTransferMode = .manual
+    @State private var tab: AppTab = .library
 
     var body: some View {
-        TabView {
+        TabView(selection: $tab) {
             NavigationStack {
-                CameraBrowserView(model: ricohModel)
+                LibraryView(model: libraryModel,
+                            refreshToken: ftpController.lastReceivedAt,
+                            onShowCameras: { tab = .cameras })
             }
-            .tabItem { Label("GR IV", systemImage: "camera") }
+            .tabItem { Label("Library", systemImage: "photo.on.rectangle") }
+            .tag(AppTab.library)
 
             NavigationStack {
-                SonyFTPView(controller: ftpController)
+                CamerasView(ricohModel: ricohModel, olympusModel: olympusModel, ftpController: ftpController)
             }
-            .tabItem { Label("A7CR", systemImage: "antenna.radiowaves.left.and.right") }
-
-            NavigationStack {
-                CameraBrowserView(model: olympusModel)
-            }
-            .tabItem { Label("OM-3", systemImage: "camera.aperture") }
-
-            NavigationStack {
-                LibraryView(model: libraryModel, refreshToken: ftpController.lastReceivedAt)
-            }
-            .tabItem { Label("Library", systemImage: "photo.stack") }
+            .tabItem { Label("Cameras", systemImage: "camera") }
+            .tag(AppTab.cameras)
 
             NavigationStack {
                 SettingsView(ftpController: ftpController)
             }
             .tabItem { Label("Settings", systemImage: "gearshape") }
+            .tag(AppTab.settings)
+        }
+        .onChange(of: tab) { _, newTab in
+            if newTab == .library {
+                Task { await libraryModel.reload() }
+            }
         }
         .onChange(of: scenePhase) { _, phase in
             switch phase {

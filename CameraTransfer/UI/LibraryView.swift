@@ -7,28 +7,96 @@ struct LibrarySnapshot: Sendable {
     var totalBytes: Int64 = 0
 }
 
+/// One day's worth of transferred files, newest day first.
+struct LibraryDay: Identifiable, Sendable {
+    let day: Date
+    let files: [LocalFile]
+
+    var id: Date { day }
+
+    var title: String {
+        let calendar = Calendar.current
+        if calendar.isDateInToday(day) { return "Today" }
+        if calendar.isDateInYesterday(day) { return "Yesterday" }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .full
+        formatter.timeStyle = .none
+        return formatter.string(from: day)
+    }
+}
+
+enum LibraryGrouping {
+    /// Filters, sorts newest first and groups by calendar day. Pure, so it can be unit-tested.
+    static func days(from snapshot: LibrarySnapshot,
+                     camera: CameraModel?,
+                     kind: FileKind?,
+                     calendar: Calendar = .current) -> [LibraryDay] {
+        var all: [LocalFile] = []
+        for (model, files) in snapshot.files where camera == nil || camera == model {
+            all.append(contentsOf: files)
+        }
+        if let kind {
+            all = all.filter { $0.kind == kind }
+        }
+        all.sort { lhs, rhs in
+            if lhs.modified != rhs.modified { return lhs.modified > rhs.modified }
+            return lhs.id < rhs.id
+        }
+        var result: [LibraryDay] = []
+        var currentDay: Date?
+        var bucket: [LocalFile] = []
+        for file in all {
+            let day = calendar.startOfDay(for: file.modified)
+            if day != currentDay {
+                if let currentDay, !bucket.isEmpty {
+                    result.append(LibraryDay(day: currentDay, files: bucket))
+                }
+                currentDay = day
+                bucket = []
+            }
+            bucket.append(file)
+        }
+        if let currentDay, !bucket.isEmpty {
+            result.append(LibraryDay(day: currentDay, files: bucket))
+        }
+        return result
+    }
+}
+
 @MainActor
 @Observable
 final class LibraryViewModel {
-    var camera: CameraModel = .ricoh
+    /// nil shows every camera together.
+    var cameraFilter: CameraModel?
+    /// nil shows every kind of file.
+    var kindFilter: FileKind?
     var snapshot = LibrarySnapshot()
     var isLoading = false
     var isSelecting = false
     var selection: Set<String> = []
     var message: String?
     var isExporting = false
-
+    private(set) var days: [LibraryDay] = []
     private let store: LibraryStore
 
     init(store: LibraryStore = .shared) {
         self.store = store
     }
 
-    var files: [LocalFile] { snapshot.files[camera] ?? [] }
-
-    var cameraBytes: Int64 { files.reduce(0) { $0 + $1.size } }
-
+    var files: [LocalFile] { days.flatMap(\.files) }
+    var totalCount: Int { snapshot.files.values.reduce(0) { $0 + $1.count } }
     var selectedFiles: [LocalFile] { files.filter { selection.contains($0.id) } }
+    var hasFilter: Bool { cameraFilter != nil || kindFilter != nil }
+
+    func count(for camera: CameraModel) -> Int {
+        snapshot.files[camera]?.count ?? 0
+    }
+
+    func regroup() {
+        days = LibraryGrouping.days(from: snapshot, camera: cameraFilter, kind: kindFilter)
+        let valid = Set(files.map(\.id))
+        selection = selection.intersection(valid)
+    }
 
     func reload() async {
         isLoading = true
@@ -43,9 +111,16 @@ final class LibraryViewModel {
             return snapshot
         }.value
         snapshot = result
-        let valid = Set(files.map(\.id))
-        selection = selection.intersection(valid)
+        regroup()
         isLoading = false
+    }
+
+    func toggle(_ file: LocalFile) {
+        if selection.contains(file.id) {
+            selection.remove(file.id)
+        } else {
+            selection.insert(file.id)
+        }
     }
 
     func delete(_ toDelete: [LocalFile]) async {
@@ -58,7 +133,7 @@ final class LibraryViewModel {
                 failures += 1
             }
         }
-        message = failures == 0 ? "Deleted \(toDelete.count) file(s)." : "Could not delete \(failures) file(s)."
+        message = failures == 0 ? "Deleted \(toDelete.count) item(s)." : "Could not delete \(failures) item(s)."
         selection = []
         isSelecting = false
         await reload()
@@ -81,106 +156,72 @@ final class LibraryViewModel {
     }
 }
 
+/// Everything that has been transferred, from all cameras, in one grid laid out like the Photos app.
 struct LibraryView: View {
     @Bindable var model: LibraryViewModel
-    /// Changes whenever the FTP server receives a file, so the list refreshes.
+    /// Changes whenever the FTP server receives a file, so the grid refreshes.
     var refreshToken: Date?
+    /// Called by the empty state's button to jump to the Cameras tab.
+    var onShowCameras: (() -> Void)?
 
     @State private var previewURL: URL?
     @State private var pendingDelete: [LocalFile] = []
     @State private var showDeleteConfirmation = false
 
-    private let columns = [GridItem(.adaptive(minimum: 104, maximum: 180), spacing: 3)]
+    private let columns = [GridItem(.adaptive(minimum: 110, maximum: 200), spacing: 2)]
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 12) {
-                Picker("Camera", selection: $model.camera) {
-                    ForEach(CameraModel.allCases) { camera in
-                        Text(camera.shortName).tag(camera)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .onChange(of: model.camera) { _, _ in
-                    model.selection = []
-                }
-
-                HStack {
-                    Text("\(model.files.count) files, \(ByteCountFormatter.string(fromByteCount: model.cameraBytes, countStyle: .file))")
-                    Spacer()
-                    Text("Total \(ByteCountFormatter.string(fromByteCount: model.snapshot.totalBytes, countStyle: .file))")
-                }
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-
-                if let message = model.message {
-                    Text(message)
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
-
-                if model.isSelecting {
-                    selectionBar
-                }
-
-                if model.files.isEmpty {
-                    VStack(spacing: 8) {
-                        Image(systemName: "photo.on.rectangle.angled")
-                            .font(.largeTitle)
-                            .foregroundStyle(.secondary)
-                        Text(model.isLoading ? "Loading..." : "No files from the \(model.camera.displayName) yet.")
-                            .foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 60)
-                } else {
-                    LazyVGrid(columns: columns, spacing: 3) {
-                        ForEach(model.files) { file in
-                            LocalThumbnailCell(file: file,
-                                               isSelecting: model.isSelecting,
-                                               isSelected: model.selection.contains(file.id))
-                                .onTapGesture {
-                                    if model.isSelecting {
-                                        if model.selection.contains(file.id) {
-                                            model.selection.remove(file.id)
-                                        } else {
-                                            model.selection.insert(file.id)
-                                        }
-                                    } else {
-                                        previewURL = file.url
-                                    }
-                                }
-                                .contextMenu {
-                                    ShareLink(item: file.url) {
-                                        Label("Share", systemImage: "square.and.arrow.up")
-                                    }
-                                    Button {
-                                        Task { await model.exportToPhotos([file]) }
-                                    } label: {
-                                        Label("Save to Photos (add-only)", systemImage: "photo.badge.plus")
-                                    }
-                                    Button(role: .destructive) {
-                                        pendingDelete = [file]
-                                        showDeleteConfirmation = true
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                }
+            if model.days.isEmpty {
+                emptyState
+            } else {
+                LazyVGrid(columns: columns, spacing: 2, pinnedViews: []) {
+                    ForEach(model.days) { day in
+                        Section {
+                            ForEach(day.files) { file in
+                                cell(for: file)
+                            }
+                        } header: {
+                            HStack {
+                                Text(day.title).font(.headline)
+                                Spacer()
+                                Text("\(day.files.count)")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.top, 14)
+                            .padding(.bottom, 4)
                         }
                     }
                 }
+                summary
             }
-            .padding(.horizontal)
-            .padding(.bottom, 24)
         }
         .navigationTitle("Library")
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                filterMenu
+            }
             ToolbarItem(placement: .topBarTrailing) {
-                Button(model.isSelecting ? "Done" : "Select") {
+                Button(model.isSelecting ? "Cancel" : "Select") {
                     model.isSelecting.toggle()
                     if !model.isSelecting { model.selection = [] }
                 }
-                .disabled(model.files.isEmpty)
+                .disabled(model.days.isEmpty)
+            }
+        }
+        .safeAreaInset(edge: .bottom) {
+            if model.isSelecting {
+                selectionBar
+            } else if let message = model.message {
+                Text(message)
+                    .font(.footnote)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(.regularMaterial, in: Capsule())
+                    .padding(.bottom, 8)
+                    .onTapGesture { model.message = nil }
             }
         }
         .refreshable { await model.reload() }
@@ -188,7 +229,9 @@ struct LibraryView: View {
         .onChange(of: refreshToken) { _, _ in
             Task { await model.reload() }
         }
-        .quickLookPreview($previewURL)
+        .onChange(of: model.cameraFilter) { _, _ in model.regroup() }
+        .onChange(of: model.kindFilter) { _, _ in model.regroup() }
+        .quickLookPreview($previewURL, in: model.files.map(\.url))
         .confirmationDialog(deleteTitle, isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
             Button("Delete", role: .destructive) {
                 let files = pendingDelete
@@ -199,44 +242,153 @@ struct LibraryView: View {
                 pendingDelete = []
             }
         } message: {
-            Text("The files are removed from this iPhone. Copies on the camera and in Photos are not affected.")
+            Text("This removes the copies stored in this app. Copies on the camera and in Photos are not affected.")
         }
     }
 
+    // MARK: Pieces
+
+    private func cell(for file: LocalFile) -> some View {
+        LocalThumbnailCell(file: file,
+                           isSelecting: model.isSelecting,
+                           isSelected: model.selection.contains(file.id))
+            .onTapGesture {
+                if model.isSelecting {
+                    model.toggle(file)
+                } else {
+                    previewURL = file.url
+                }
+            }
+            .contextMenu {
+                ShareLink(item: file.url) {
+                    Label("Share", systemImage: "square.and.arrow.up")
+                }
+                Button {
+                    Task { await model.exportToPhotos([file]) }
+                } label: {
+                    Label("Add to Photos", systemImage: "photo.badge.plus")
+                }
+                Button(role: .destructive) {
+                    pendingDelete = [file]
+                    showDeleteConfirmation = true
+                } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+            }
+    }
+
+    @ViewBuilder
+    private var emptyState: some View {
+        if model.isLoading {
+            ProgressView()
+                .padding(.top, 120)
+        } else if model.hasFilter && model.totalCount > 0 {
+            ContentUnavailableView {
+                Label("Nothing Matches", systemImage: "line.3.horizontal.decrease.circle")
+            } description: {
+                Text("No transferred items match this filter.")
+            } actions: {
+                Button("Show Everything") {
+                    model.cameraFilter = nil
+                    model.kindFilter = nil
+                }
+            }
+            .padding(.top, 60)
+        } else {
+            ContentUnavailableView {
+                Label("No Photos Yet", systemImage: "photo.on.rectangle.angled")
+            } description: {
+                Text("Photos you import from your cameras appear here.")
+            } actions: {
+                if let onShowCameras {
+                    Button("Import from a Camera", action: onShowCameras)
+                        .buttonStyle(.borderedProminent)
+                }
+            }
+            .padding(.top, 60)
+        }
+    }
+
+    private var summary: some View {
+        let count = model.files.count
+        let bytes = model.files.reduce(Int64(0)) { $0 + $1.size }
+        return Text("\(count) item\(count == 1 ? "" : "s"), \(ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file))")
+            .font(.footnote)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 20)
+    }
+
+    private var filterMenu: some View {
+        Menu {
+            Picker("Camera", selection: $model.cameraFilter) {
+                Text("All Cameras").tag(CameraModel?.none)
+                ForEach(CameraModel.allCases) { camera in
+                    Text("\(camera.displayName) (\(model.count(for: camera)))").tag(CameraModel?.some(camera))
+                }
+            }
+            Picker("Kind", selection: $model.kindFilter) {
+                Text("All Kinds").tag(FileKind?.none)
+                Text("JPEG").tag(FileKind?.some(.jpeg))
+                Text("RAW").tag(FileKind?.some(.raw))
+                Text("Video").tag(FileKind?.some(.video))
+            }
+        } label: {
+            Image(systemName: model.hasFilter
+                  ? "line.3.horizontal.decrease.circle.fill"
+                  : "line.3.horizontal.decrease.circle")
+        }
+        .accessibilityLabel("Filter")
+    }
+
     private var deleteTitle: String {
-        pendingDelete.count == 1 ? "Delete \(pendingDelete[0].name)?" : "Delete \(pendingDelete.count) files?"
+        pendingDelete.count == 1 ? "Delete \(pendingDelete[0].name)?" : "Delete \(pendingDelete.count) items?"
     }
 
     private var selectionBar: some View {
         let selected = model.selectedFiles
-        return HStack {
-            Button("All") {
-                model.selection = Set(model.files.map(\.id))
+        return VStack(spacing: 8) {
+            HStack {
+                Text(selected.isEmpty ? "Select Items" : "\(selected.count) Selected")
+                    .font(.subheadline.bold())
+                Spacer()
+                Button(selected.count == model.files.count ? "Deselect All" : "Select All") {
+                    if selected.count == model.files.count {
+                        model.selection = []
+                    } else {
+                        model.selection = Set(model.files.map(\.id))
+                    }
+                }
+                .font(.subheadline)
             }
-            Spacer()
-            ShareLink(items: selected.map(\.url)) {
-                Label("Share", systemImage: "square.and.arrow.up")
+            HStack {
+                ShareLink(items: selected.map(\.url)) {
+                    Image(systemName: "square.and.arrow.up")
+                }
+                .disabled(selected.isEmpty)
+                .accessibilityLabel("Share")
+                Spacer()
+                Button {
+                    Task { await model.exportToPhotos(selected) }
+                } label: {
+                    Label("Add to Photos", systemImage: "photo.badge.plus")
+                }
+                .disabled(selected.isEmpty || model.isExporting)
+                Spacer()
+                Button(role: .destructive) {
+                    pendingDelete = selected
+                    showDeleteConfirmation = true
+                } label: {
+                    Image(systemName: "trash")
+                }
+                .disabled(selected.isEmpty)
+                .accessibilityLabel("Delete")
             }
-            .disabled(selected.isEmpty)
-            Spacer()
-            Button {
-                Task { await model.exportToPhotos(selected) }
-            } label: {
-                Label("Photos", systemImage: "photo.badge.plus")
-            }
-            .disabled(selected.isEmpty || model.isExporting)
-            Spacer()
-            Button(role: .destructive) {
-                pendingDelete = selected
-                showDeleteConfirmation = true
-            } label: {
-                Label("Delete", systemImage: "trash")
-            }
-            .disabled(selected.isEmpty)
+            .font(.title3)
         }
-        .font(.subheadline)
-        .padding(10)
-        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 10))
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+        .background(.regularMaterial)
     }
 }
 
@@ -263,31 +415,34 @@ struct LocalThumbnailCell: View {
             }
             .clipped()
             .overlay(alignment: .bottomLeading) {
-                Text(file.kind == .other ? file.url.pathExtension.uppercased() : file.kind.label)
-                    .font(.caption2.bold())
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 2)
-                    .background(Color.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 4))
-                    .foregroundStyle(.white)
-                    .padding(4)
-            }
-            .overlay(alignment: .topTrailing) {
-                if isSelecting {
-                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                        .font(.title3)
-                        .foregroundStyle(isSelected ? Color.accentColor : Color.white)
-                        .shadow(radius: 2)
+                if file.kind != .jpeg {
+                    Text(file.kind == .other ? file.url.pathExtension.uppercased() : file.kind.label)
+                        .font(.caption2.bold())
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 2)
+                        .background(Color.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 4))
+                        .foregroundStyle(.white)
                         .padding(4)
                 }
             }
             .overlay {
                 if isSelected {
-                    Rectangle().stroke(Color.accentColor, lineWidth: 3)
+                    Color.white.opacity(0.3)
+                }
+            }
+            .overlay(alignment: .bottomTrailing) {
+                if isSelecting {
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                        .font(.title3)
+                        .foregroundStyle(.white, isSelected ? Color.accentColor : Color.clear)
+                        .shadow(radius: 2)
+                        .padding(5)
                 }
             }
             .contentShape(Rectangle())
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("\(file.name), \(file.kind.label)")
+            .accessibilityAddTraits(isSelected ? AccessibilityTraits.isSelected : AccessibilityTraits())
             .task(id: file.id) {
                 if image == nil {
                     image = LocalThumbnailCache.shared.cachedImage(for: file.url)
