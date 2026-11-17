@@ -20,7 +20,7 @@ Optional **auto-transfer modes** send the full-size JPEG of each new shot straig
 2. Open `CameraTransfer.xcodeproj`.
 3. Select the **CameraTransfer** target > **Signing & Capabilities**:
    - Choose your **Team**. A free personal Apple ID works, but apps signed that way stop working after 7 days, so you have to rebuild and reinstall them. A paid developer account lasts a year.
-   - Change the **Bundle Identifier** from `com.example.CameraTransfer` to something unique, e.g. `com.yourname.CameraTransfer`. Also change the test target's bundle id, or just leave it, since tests run in the Simulator.
+   - The project carries the owner's team and the bundle identifier `com.davidharris.CameraTransfer`. Anyone else building it must choose their own Team and change the **Bundle Identifier** (and the Watch target's, which must start with the iPhone app's).
 4. Connect your iPhone, select it as the run destination and press **Run** (Cmd-R).
    The first time, you may need to turn on **Developer Mode** on the iPhone (Settings > Privacy & Security > Developer Mode), and trust the developer certificate (Settings > General > VPN & Device Management).
 5. Unit tests: choose an iPhone Simulator and press **Cmd-U**.
@@ -103,9 +103,27 @@ The A7CR does not serve files over HTTP. Instead, it *sends* files to an FTP ser
 
 **If it does not work:** the app's checklist ("How far it has got") shows the first step that failed, and *It is not working* has a self-test and the usual causes. On the camera, FTP Transfer Func. > **Display FTP Error Info.** shows the camera's own error.
 
-### Live view and remote shutter (OM-3, experimental)
+### Live view and remote shutter (all three cameras, experimental)
 
-**Cameras > OM System OM-3 > Live view and remote shutter** asks the camera for its live picture and shows a shutter button. It uses the commands documented by the community for older Olympus bodies (`switch_cammode`, `exec_takemisc startliveview`, `exec_takemotion`) and has not been confirmed on the OM-3. The Sony A7CR and Ricoh GR IV have no remote control in this app: Sony's remote protocol is licensed to companies only, and Ricoh's own app offers only a Bluetooth shutter release.
+**Cameras > Live view and remote shutter** shows what the camera sees and a shutter button. The same screen serves all three cameras; **How to set up the camera** on that screen lists the steps for each, and **Troubleshooting log** records every step (with a Copy button). None of this has been confirmed on the real cameras yet.
+
+| Camera | Picture | Shutter | What the camera needs |
+|---|---|---|---|
+| Sony A7CR | PTP/IP "PC Remote" over Wi-Fi (port 15740), live-view object `0xFFFFC002` | `ControlDevice` half-press `0xD2C1`, full press `0xD2C2` | Same network as the iPhone; **Access Authen. Off**; **PC Remote On**; **Still Img. Save Dest. = Camera Only**; **Pairing** once |
+| Ricoh GR IV | `GET /v1/liveview` (Motion JPEG) over the camera's Wi-Fi | Bluetooth: `0x00` to Shooting Flavor, then `01 01` to Operation Request; falls back to `POST /v1/camera/shoot` | Connected in the app first (Bluetooth + its Wi-Fi), shooting mode |
+| OM System OM-3 | `switch_cammode rec`, `exec_takemisc startliveview` (RTP over UDP 40000) | `exec_takemotion newstarttake` | iPhone joined to the camera's Wi-Fi |
+
+Notes:
+
+- **Sony:** with Access Authen. on, the camera expects an encrypted (SSH) session, which this app does not implement. Sony's own note is that with it off, remote control on that network is not password-protected or encrypted, so use your own hotspot or home Wi-Fi. The app finds the camera by the address it last sent photos from, then by searching the network; you can type the address under Settings > Advanced. The protocol details come from open-source projects tested on other Alpha bodies (A7C), not the A7CR. Sending photos by FTP while PC Remote is on is untested.
+- **Ricoh:** the Bluetooth shutter and `/v1/liveview` are reported working on the GR IV by a community project; the app's own implementation is untested.
+- Live view runs only while the app is on screen. iOS stops the camera connection soon after the app goes to the background.
+
+### Apple Watch remote
+
+The **CameraTransferWatch** target is a small Watch app: pick a camera, see its live picture (about 4 pictures a second), press **Shutter**. The Watch does not talk to the camera. It sends commands to the iPhone app over WatchConnectivity and the iPhone app talks to the camera, so **Camera Transfer must be open on the iPhone**.
+
+To install it: in Xcode choose the **CameraTransferWatch** scheme, pick your Apple Watch as the destination and press Run. The Watch needs **Developer Mode** (Watch: Settings > Privacy & Security > Developer Mode) and must be paired with an iPhone that Xcode can see. The Watch app is deliberately **not embedded** in the iPhone app, so a missing or unregistered Watch can never stop the iPhone app from building. With a free Apple ID it expires after 7 days, like the iPhone app. It has not been run on a Watch yet.
 
 ### Auto-transfer modes
 
@@ -172,7 +190,8 @@ In the Simulator, use `--host 127.0.0.1`. The script uploads a test file and che
 
 Please read this before relying on the app.
 
-- **Nothing has been compiled or run, in Xcode or on hardware.** The code was written without a Swift compiler. Expect to fix a few compile errors on the first build. The pure logic (parsers, FTP command state machine, transfer policy, Bluetooth text decoding) has XCTest unit tests, but these have not been run either.
+- **It compiles and its unit tests pass** (GitHub Actions, Xcode 16.4, and Xcode 27.2 on the Mac), and it has been installed on two iPhones. **It has not yet worked against a real camera.** Every camera-facing part is untested on hardware until noted here.
+- **Live view, remote shutter and the Watch app are untested** on every camera (see the table above for where each protocol comes from).
 - **The GR IV Bluetooth wake-up flow comes from third-party reverse engineering on firmware 1.11.** That covers the service and characteristic UUIDs and the "write 0x01 to start the access point" behaviour. Firmware 1.20 changed wireless behaviour and is **untested**. Pairing behaviour (when iOS shows the code, how many retries it takes) is also unconfirmed.
 - **The GR IV Wi-Fi passphrase may not be readable as plain text** over Bluetooth (it may come back encrypted). The app detects this and falls back to manual joining. You then need the password from the camera.
 - **The GR IV HTTP API (/v1) is reported to exist on firmware 1.11.** Some details are assumptions and are marked as such in the code: `storages[]` in `/v1/props`, `?storageId=` on file URLs (the app falls back to no parameter on 404), the battery and firmware key names, and `/v1/device/wlan/finish`.
@@ -211,9 +230,12 @@ CameraTransfer/
   Info.plist
   CameraTransfer.entitlements Hotspot Configuration (automatic Wi-Fi joining)
   Core/                       Models, camera clients, parsers, Ricoh Bluetooth, Wi-Fi joining,
-                              transfer policy + auto-transfer, FTP server, storage, Photos export
+                              transfer policy + auto-transfer, FTP server, storage, Photos export,
+                              remote control (PTP/IP for Sony, MJPEG for Ricoh, RTP for OM-3), Watch link
   UI/                         SwiftUI views and view models
-CameraTransferTests/          XCTest: parsers, FTP session, transfer policy, BLE decoding, file kinds, storage
+CameraTransferTests/          XCTest: parsers, FTP session, transfer policy, BLE decoding, file kinds, storage,
+                              PTP/IP packets, live-view frame assembly
+CameraTransferWatch/          Apple Watch app (own scheme, not embedded in the iPhone app)
 tools/mock_cameras.py         Fake Ricoh + OM System HTTP cameras
 tools/ftp_push_test.py        Fake Sony FTP client
 ```
