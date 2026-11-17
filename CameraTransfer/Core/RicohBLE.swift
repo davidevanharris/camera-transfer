@@ -15,6 +15,10 @@ enum RicohBLEUUID {
     static let powerServicePrefix = "0F291746"
     static let batteryService = CBUUID(string: "180F")
     static let batteryLevel = CBUUID(string: "2A19")
+    /// Remote shutter (from a community project that reports it working on the GR IV; unconfirmed with this app).
+    /// GR IV: write 0x00 to Shooting Flavor, then {0x01, 0x01} (start, with autofocus) to Operation Request.
+    static let shootingFlavor = CBUUID(string: "B29E6DE3-1AEC-48C1-9D05-02CEA57CE664")
+    static let operationRequest = CBUUID(string: "559644B8-E0BC-4011-929B-5CF9199851E7")
 }
 
 /// Pure helpers (unit tested).
@@ -320,6 +324,19 @@ final class RicohBLE {
 
     func clearLog() {
         log = []
+    }
+
+    /// Fires the shutter over Bluetooth. The camera must already be connected (it is after "Connect").
+    func releaseShutter(autofocus: Bool) async throws {
+        guard let peripheral, peripheral.state == .connected else { throw RicohBLEError.disconnected }
+        guard characteristics[RicohBLEUUID.operationRequest] != nil else {
+            throw RicohBLEError.characteristicMissing(RicohBLEUUID.operationRequest.uuidString)
+        }
+        if characteristics[RicohBLEUUID.shootingFlavor] != nil {
+            try await write(Data([0x00]), to: RicohBLEUUID.shootingFlavor)
+        }
+        try await write(Data([0x01, autofocus ? 0x01 : 0x00]), to: RicohBLEUUID.operationRequest)
+        appendLog("Shutter request written (autofocus \(autofocus ? "on" : "off"))")
     }
 
     // MARK: Steps

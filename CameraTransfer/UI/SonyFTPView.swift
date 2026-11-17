@@ -198,6 +198,8 @@ final class FTPServerController {
             }
             sawLogin = true
             loginRejected = false
+            // Remember where the camera is, so remote control can find it without searching.
+            SonyRemoteSettings.rememberSeenHost(host)
             append("Camera logged in (\(host)).", isFile: false)
         case .fileReceived(let name, let size, let url):
             receivedCount += 1

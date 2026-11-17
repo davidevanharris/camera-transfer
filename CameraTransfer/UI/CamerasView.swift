@@ -33,8 +33,24 @@ struct CamerasView: View {
                               status: status(for: olympusModel),
                               how: "Join the camera's own Wi-Fi, then connect")
                 }
+            } header: {
+                Text("Import photos")
             } footer: {
                 Text("Imported photos appear in the Library tab and in the Files app under Camera Transfer.")
+            }
+
+            Section {
+                ForEach(CameraModel.allCases) { camera in
+                    NavigationLink {
+                        LiveViewView(camera: camera)
+                    } label: {
+                        Label(camera.displayName, systemImage: "dot.viewfinder")
+                    }
+                }
+            } header: {
+                Text("Live view and remote shutter")
+            } footer: {
+                Text("See what the camera sees and take a photo from this iPhone or from the Camera Transfer app on your Apple Watch. Experimental until tested on each camera.")
             }
         }
         .navigationTitle("Cameras")

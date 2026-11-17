@@ -19,6 +19,16 @@ jobs:
             CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" \
             2>&1 | tee build.log | grep -E "error:|warning: unre|BUILD (SUCCEEDED|FAILED)" || true
           grep -q "BUILD SUCCEEDED" build.log
+      - name: Compile Watch app (watchOS Simulator, no signing)
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project CameraTransfer.xcodeproj \
+            -scheme CameraTransferWatch \
+            -destination 'generic/platform=watchOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGN_IDENTITY="" \
+            2>&1 | tee watch.log | grep -E "error:|BUILD (SUCCEEDED|FAILED)" || true
+          grep -q "BUILD SUCCEEDED" watch.log
       - name: Run unit tests
         run: |
           set -o pipefail
@@ -44,4 +54,5 @@ jobs:
           name: logs
           path: |
             build.log
+            watch.log
             test.log

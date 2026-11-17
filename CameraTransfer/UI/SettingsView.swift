@@ -97,6 +97,7 @@ struct AdvancedSettingsView: View {
     @AppStorage(SettingsKey.ftpPassword) private var ftpPassword = ""
     @AppStorage(AutoTransferSettings.allowUnknownCameraBatteryKey) private var allowUnknownCameraBattery = true
     @AppStorage(AutoTransferSettings.keepCopyKey) private var keepCopy = false
+    @AppStorage(SonyRemoteSettings.hostKey) private var sonyRemoteHost = ""
 
     let ftpController: FTPServerController
 
@@ -145,6 +146,18 @@ struct AdvancedSettingsView: View {
                 Text("OM System OM-3")
             } footer: {
                 Text("For testing in the Simulator with tools/mock_cameras.py use http://localhost:8001 (Ricoh) and http://localhost:8002 (OM System).")
+            }
+
+            Section {
+                urlField("Found automatically", text: $sonyRemoteHost)
+                if let seen = SonyRemoteSettings.lastSeenHost() {
+                    LabeledContent("Last seen at", value: seen)
+                        .font(.footnote)
+                }
+            } header: {
+                Text("Sony A7CR live view")
+            } footer: {
+                Text("The camera's address for live view. Leave empty: the app uses the address the camera last sent photos from, or searches the network. Fill it in only if the search fails; the camera shows its address under MENU > Network > Wi-Fi > Display Wi-Fi Info.")
             }
 
             Section {

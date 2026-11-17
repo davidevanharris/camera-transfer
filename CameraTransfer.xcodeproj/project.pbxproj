@@ -19,6 +19,7 @@
 /* Begin PBXFileReference section */
 		AA0000000000000000000004 /* CameraTransfer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CameraTransfer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA0000000000000000000005 /* CameraTransferTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CameraTransferTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA0000000000000000000020 /* CameraTransferWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CameraTransferWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -29,6 +30,13 @@
 				Info.plist,
 			);
 			target = AA0000000000000000000009 /* CameraTransfer */;
+		};
+		AA0000000000000000000029 /* Exceptions for "CameraTransferWatch" folder in "CameraTransferWatch" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = AA0000000000000000000025 /* CameraTransferWatch */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -44,6 +52,14 @@
 		AA0000000000000000000007 /* CameraTransferTests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = CameraTransferTests;
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000021 /* CameraTransferWatch */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				AA0000000000000000000029 /* Exceptions for "CameraTransferWatch" folder in "CameraTransferWatch" target */,
+			);
+			path = CameraTransferWatch;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -63,6 +79,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA0000000000000000000022 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -71,6 +94,7 @@
 			children = (
 				AA0000000000000000000006 /* CameraTransfer */,
 				AA0000000000000000000007 /* CameraTransferTests */,
+				AA0000000000000000000021 /* CameraTransferWatch */,
 				AA0000000000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -80,6 +104,7 @@
 			children = (
 				AA0000000000000000000004 /* CameraTransfer.app */,
 				AA0000000000000000000005 /* CameraTransferTests.xctest */,
+				AA0000000000000000000020 /* CameraTransferWatch.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -132,6 +157,28 @@
 			productReference = AA0000000000000000000005 /* CameraTransferTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		AA0000000000000000000025 /* CameraTransferWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA0000000000000000000026 /* Build configuration list for PBXNativeTarget "CameraTransferWatch" */;
+			buildPhases = (
+				AA0000000000000000000023 /* Sources */,
+				AA0000000000000000000022 /* Frameworks */,
+				AA0000000000000000000024 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				AA0000000000000000000021 /* CameraTransferWatch */,
+			);
+			name = CameraTransferWatch;
+			packageProductDependencies = (
+			);
+			productName = CameraTransferWatch;
+			productReference = AA0000000000000000000020 /* CameraTransferWatch.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -148,6 +195,9 @@
 					AA000000000000000000000A = {
 						CreatedOnToolsVersion = 16.0;
 						TestTargetID = AA0000000000000000000009;
+					};
+					AA0000000000000000000025 = {
+						CreatedOnToolsVersion = 16.0;
 					};
 				};
 			};
@@ -167,6 +217,7 @@
 			targets = (
 				AA0000000000000000000009 /* CameraTransfer */,
 				AA000000000000000000000A /* CameraTransferTests */,
+				AA0000000000000000000025 /* CameraTransferWatch */,
 			);
 		};
 /* End PBXProject section */
@@ -186,6 +237,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA0000000000000000000024 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -197,6 +255,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		AA000000000000000000000E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA0000000000000000000023 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -343,7 +408,7 @@
 				CODE_SIGN_ENTITLEMENTS = CameraTransfer/CameraTransfer.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = YUGK5L3VH8;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = CameraTransfer/Info.plist;
@@ -378,7 +443,7 @@
 				CODE_SIGN_ENTITLEMENTS = CameraTransfer/CameraTransfer.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = YUGK5L3VH8;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = CameraTransfer/Info.plist;
@@ -445,6 +510,62 @@
 			};
 			name = Release;
 		};
+		AA0000000000000000000027 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YUGK5L3VH8;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CameraTransferWatch/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Camera Transfer";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.davidharris.CameraTransfer.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		AA0000000000000000000028 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = YUGK5L3VH8;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = CameraTransferWatch/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Camera Transfer";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.davidharris.CameraTransfer.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -471,6 +592,15 @@
 			buildConfigurations = (
 				AA000000000000000000001A /* Debug */,
 				AA000000000000000000001B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA0000000000000000000026 /* Build configuration list for PBXNativeTarget "CameraTransferWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000000000000000000027 /* Debug */,
+				AA0000000000000000000028 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

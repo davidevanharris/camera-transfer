@@ -27,16 +27,14 @@ struct CameraBrowserView: View {
                             ConnectionInstructionsView(camera: model.camera, isExpanded: $showInstructions)
                         }
                     }
-                    if model.camera == .olympus {
-                        NavigationLink {
-                            LiveViewView(camera: model.camera)
-                        } label: {
-                            Label("Live view and remote shutter (experimental)", systemImage: "dot.viewfinder")
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        .buttonStyle(.bordered)
-                        .disabled(model.isBusy)
+                    NavigationLink {
+                        LiveViewView(camera: model.camera)
+                    } label: {
+                        Label("Live view and remote shutter", systemImage: "dot.viewfinder")
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
+                    .buttonStyle(.bordered)
+                    .disabled(model.isBusy)
                     if let message = model.statusMessage {
                         Text(message)
                             .font(.footnote)
